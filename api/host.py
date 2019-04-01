@@ -179,31 +179,9 @@ def get_host_list(display_name=None, fqdn=None,
 
 def download_hosts():
     def generate():
-        page = 1  # Counter used only for logging.
-        marker = None
-        base_query = _query_hosts()
-        while True:
-            logger.debug("download_hosts: Page #%d", page)
-
-            if marker:
-                query = base_query.filter((Host.created_on, Host.id) > marker)
-                logger.debug("download_hosts: From %s", marker)
-            else:
-                query = base_query.filter()
-                logger.debug("download_hosts: From the beginning")
-
-            query = query.order_by(Host.created_on, Host.id).limit(100)
-
-            eof = True
-            for host in query:
-                yield f"{ujson.dumps(host.to_json())}\n"
-                marker = (host.created_on, host.id)
-                eof = False
-
-            if eof:
-                break
-
-            page += 1
+        query = _query_hosts()
+        for host in query.yield_per(100):
+            yield f"{ujson.dumps(host.to_json())}\n"
 
     return Response(stream_with_context(generate()), mimetype='application/x-ndjson')
 

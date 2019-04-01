@@ -1506,9 +1506,6 @@ class DownloadHostsTestCase(PreCreatedHostsBaseTestCase):
         for result in results:
             self.assertEqual(results.count(result), 1)
 
-    # Order is untested, it’s there only for the marker pagination. Order is not
-    # guaranteed in the results.
-
 
 class FactsTestCase(PreCreatedHostsBaseTestCase):
     def _valid_fact_doc(self):
