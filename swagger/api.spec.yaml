@@ -89,11 +89,6 @@ paths:
         valid JSON – it’s a concatenated list of JSON documents.
       security:
         - ApiKeyAuth: []
-      parameters:
-        - $ref: '#/components/parameters/displayName'
-        - $ref: '#/components/parameters/fqdn'
-        - $ref: '#/components/parameters/hostnameOrId'
-        - $ref: '#/components/parameters/insightsId'
       responses:
         '200':
           description: Successfully downloaded the hosts list.

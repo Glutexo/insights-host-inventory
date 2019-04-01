@@ -177,11 +177,11 @@ def get_host_list(display_name=None, fqdn=None,
     return _build_json_response(json_output, status=200)
 
 
-def download_hosts(display_name=None, fqdn=None, hostname_or_id=None, insights_id=None):
+def download_hosts():
     def generate():
         page = 1  # Counter used only for logging.
         marker = None
-        base_query = _query_hosts(display_name, fqdn, hostname_or_id, insights_id)
+        base_query = _query_hosts()
         while True:
             logger.debug("download_hosts: Page #%d", page)
 
@@ -208,7 +208,7 @@ def download_hosts(display_name=None, fqdn=None, hostname_or_id=None, insights_i
     return Response(stream_with_context(generate()), mimetype='application/x-ndjson')
 
 
-def _query_hosts(display_name, fqdn, hostname_or_id, insights_id):
+def _query_hosts(display_name=None, fqdn=None, hostname_or_id=None, insights_id=None):
     if fqdn:
         return find_hosts_by_canonical_facts(
             current_identity.account_number, {"fqdn": fqdn}
