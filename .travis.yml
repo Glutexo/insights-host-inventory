@@ -8,6 +8,8 @@ install:
   - pipenv install --dev
 before_script:
   - psql -U postgres -c 'CREATE DATABASE "insights";'
+  - psql -U postgres -c 'CREATE USER "insights" WITH PASSWORD INSIGHTS;'
+  - psql -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "insights" TO "insights";'
 script:
   - ./test_api.py
   - ./test_unit.py
