@@ -1,8 +1,11 @@
 ---
+dist: xenial
 language: python
 python:
   - "3.6"
-install: pipenv install --dev
+install:
+  - pip install pipenv
+  - pipenv install --dev
 script:
   - ./test_api.py
   - ./test_unit.py
