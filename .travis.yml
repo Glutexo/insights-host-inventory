@@ -6,6 +6,10 @@ python:
 install:
   - pip install pipenv
   - pipenv install --dev
+before_script:
+  - psql -U postgres -c 'CREATE DATABASE "insights";'
 script:
   - ./test_api.py
   - ./test_unit.py
+services:
+  - postgresql
