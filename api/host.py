@@ -13,7 +13,7 @@ from app.models import Host, HostSchema, PatchHostSchema
 from app.auth import current_identity
 from app.exceptions import InventoryException
 from api import api_operation, metrics
-from tasks import emit_event
+from tasks import get_producer
 
 
 TAG_OPERATIONS = ("apply", "remove")
@@ -256,8 +256,9 @@ def delete_by_id(host_id_list):
         query.delete(synchronize_session="fetch")
     db.session.commit()
     metrics.delete_host_count.inc(len(hosts))
+    producer = get_producer()
     for deleted_host in hosts:
-        emit_event(events.delete(deleted_host.id))
+        producer.emit_event(events.delete(deleted_host.id))
 
 
 @api_operation
