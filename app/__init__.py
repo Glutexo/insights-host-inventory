@@ -11,7 +11,7 @@ from app.models import db
 from app.exceptions import InventoryException
 from app.logging import configure_logging, threadctx
 from app.validators import verify_uuid_format  # noqa: 401
-from tasks import start_consumer
+from tasks import start_consumer, TestProducer
 
 REQUEST_ID_HEADER = "x-rh-insights-request-id"
 UNKNOWN_REQUEST_ID_VALUE = "-1"
@@ -63,6 +63,10 @@ def create_app(config_name):
     flask_app.config["SQLALCHEMY_DATABASE_URI"] = app_config.db_uri
     flask_app.config["SQLALCHEMY_POOL_SIZE"] = app_config.db_pool_size
     flask_app.config["SQLALCHEMY_POOL_TIMEOUT"] = app_config.db_pool_timeout
+
+    if config_name == "testing":
+        flask_app.config["producer_class"] = TestProducer
+    flask_app.config.setdefault("producer_class")
 
     db.init_app(flask_app)
 

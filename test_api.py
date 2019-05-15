@@ -10,6 +10,8 @@ import tempfile
 from app import create_app, db
 from app.auth.identity import Identity
 from app.utils import HostWrapper
+from tasks import EVENT_TOPIC
+from tasks import get_producer
 from base64 import b64encode
 from json import dumps
 from datetime import datetime, timezone
@@ -245,6 +247,30 @@ class DeleteHostsTestCase(DBAPITestCase):
         self.assertEqual(response["count"], 0)
         self.assertEqual(response["total"], 0)
         self.assertEqual(response["results"], [])
+
+    def test_test_event_emitted(self):
+        # Create the host
+        host = HostWrapper(test_data(facts=None))
+        response = self.post(HOST_URL, [host.data()], 207)
+        self._verify_host_status(response, 0, 201)
+        created_host = self._pluck_host_from_response(response, 0)
+
+        original_id = created_host["id"]
+
+        with self.app.app_context():
+            # Delete the host
+            self.delete(f"{HOST_URL}/{original_id}", 200, return_response_as_json=False)
+            producer = get_producer()
+        sent_messages = producer.producer.sent_messages
+
+        self.assertIn(EVENT_TOPIC, sent_messages)
+        self.assertEqual(len(sent_messages[EVENT_TOPIC]), 1)
+
+        message = sent_messages[EVENT_TOPIC][0]
+        event_data = json.loads(message["value"].decode("utf-8"))
+        self.assertEqual(event_data["type"], "delete")
+        self.assertEqual(event_data["id"], original_id)
+
 
 class CreateHostsTestCase(DBAPITestCase):
     def test_create_and_update(self):

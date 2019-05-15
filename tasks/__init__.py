@@ -1,5 +1,6 @@
 import os
 import json
+from flask import current_app
 from flask import g
 from kafka import KafkaConsumer
 from kafka import KafkaProducer
@@ -25,22 +26,36 @@ class TestProducer:
     def __init__(self, *args, **kwargs):
         self.init_args = args
         self.init_kwargs = kwargs
-        self.messages = {}
+        self.pending_messages = {}
+        self.sent_messages = {}
 
     def send(self, topic, value=None, key=None, partition=None, timestamp_ms=None):
-        if topic not in self.messages:
-            self.messages[topic] = []
-        self.messages[topic].append({
+        if topic not in self.pending_messages:
+            self.pending_messages[topic] = []
+        self.pending_messages[topic].append({
             "value": value,
             "key": key,
             "partition": partition,
             "timestamp_ms": timestamp_ms
         })
 
+    def flush(self):
+        for topic, pending_messages in self.pending_messages.items():
+            if topic not in self.sent_messages:
+                self.sent_messages[topic] = []
+            while True:
+                try:
+                    message = pending_messages.pop()
+                except IndexError:
+                    break
+                else:
+                    self.sent_messages[topic].append(message)
+
 
 class _EventProducer:
     def __init__(self):
-        self.producer = KafkaProducer(bootstrap_servers=BOOTSTRAP_SERVERS)
+        producer_class = current_app.config["producer_class"] or KafkaProducer
+        self.producer = producer_class(bootstrap_servers=BOOTSTRAP_SERVERS)
 
     def emit_event(self, e):
         self.producer.send(EVENT_TOPIC, value=e.encode("utf-8"))
