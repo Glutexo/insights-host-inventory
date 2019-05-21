@@ -11,7 +11,7 @@ from app.models import db
 from app.exceptions import InventoryException
 from app.logging import configure_logging, threadctx
 from app.validators import verify_uuid_format  # noqa: 401
-from tasks import start_consumer, TestProducer
+from tasks import start_consumer, teardown_producer, TestProducer
 
 REQUEST_ID_HEADER = "x-rh-insights-request-id"
 UNKNOWN_REQUEST_ID_VALUE = "-1"
@@ -67,6 +67,7 @@ def create_app(config_name):
     if config_name == "testing":
         flask_app.config["producer_class"] = TestProducer
     flask_app.config.setdefault("producer_class")
+    flask_app.teardown_appcontext(teardown_producer)
 
     db.init_app(flask_app)
 

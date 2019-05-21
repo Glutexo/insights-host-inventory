@@ -59,6 +59,8 @@ class _EventProducer:
 
     def emit_event(self, e):
         self.producer.send(EVENT_TOPIC, value=e.encode("utf-8"))
+
+    def teardown(self):
         self.producer.flush()
 
 
@@ -83,6 +85,11 @@ def get_producer():
     if "producer" not in g:
         g.producer = _EventProducer()
     return g.producer
+
+
+def teardown_producer(error):
+    if "producer" in g:
+        g.producer.teardown()
 
 
 def start_consumer(flask_app, handler=msg_handler, consumer=None):
