@@ -90,17 +90,14 @@ def _add_host(host):
 def find_existing_host(account_number, canonical_facts):
     existing_host = None
 
-    input_elevated_canonical_facts = {
-        cf: canonical_facts[cf]
-        for cf in ("insights_id", "subscription_manager_id")
-        if canonical_facts.get(cf)
-    }
-
-    if input_elevated_canonical_facts:
-        # There is at least one "elevated" canonical fact passed in
-        # Search for an existing host using the "elevated" canonical facts
-        existing_host = _find_host_by_canonical_facts(account_number,
-                input_elevated_canonical_facts)
+    for cf in ("insights_id", "subscription_manager_id"):
+        elevated_id = canonical_facts.get(cf)
+        if elevated_id:
+            existing_host = _find_host_by_canonical_facts(
+                account_number, {cf: elevated_id}
+            )
+            if existing_host:
+                break
 
     if not existing_host:
         existing_host = find_host_by_canonical_facts(account_number,
