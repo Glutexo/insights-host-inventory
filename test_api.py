@@ -1276,7 +1276,6 @@ class DeleteHostsErrorTestCase(DBAPITestCase):
         self.delete(url, 400)
 
 
-@unittest.mock.patch("app.events.datetime", **{"utcnow.return_value": datetime.utcnow()})
 class DeleteHostsEventTestCase(PreCreatedHostsBaseTestCase):
     class MockEmitEvent:
         def __init__(self):
@@ -1289,19 +1288,22 @@ class DeleteHostsEventTestCase(PreCreatedHostsBaseTestCase):
         super().setUp()
         self.host_to_delete = self.added_hosts[0]
         self.delete_url = HOST_URL + "/" + self.host_to_delete.id
+        self.timestamp = datetime.utcnow()
 
-    def _delete(self, url_query=None, header=None):
+    def _delete(self, url_query="", header=None):
+        url = f"{self.delete_url}{url_query}"
+
         with unittest.mock.patch("api.host.emit_event", new_callable=self.MockEmitEvent) as m:
-            url = f"{self.delete_url}{url_query}"
-            self.delete(url, 200, header, return_response_as_json=False)
-            return json.loads(m.events[0])
+            with unittest.mock.patch("app.events.datetime", **{"utcnow.return_value": self.timestamp}):
+                self.delete(url, 200, header, return_response_as_json=False)
+                return json.loads(m.events[0])
 
-    def _assert_event_is_valid(self, event, timestamp):
+    def _assert_event_is_valid(self, event):
         self.assertIsInstance(event, dict)
         expected_keys = {"timestamp", "type", "id", "account", "insights_id", "request_id"}
         self.assertEqual(set(event.keys()), expected_keys)
 
-        self.assertEqual(f"{timestamp.isoformat()}+00:00", event["timestamp"])
+        self.assertEqual(f"{self.timestamp.isoformat()}+00:00", event["timestamp"])
         self.assertEqual("delete", event["type"])
         self.assertEqual(self.host_to_delete.id, event["id"])
         self.assertEqual(self.host_to_delete.insights_id, event["insights_id"])
@@ -1317,39 +1319,39 @@ class DeleteHostsEventTestCase(PreCreatedHostsBaseTestCase):
         self.assertEqual(after_response["total"], 0)
         self.assertEqual(after_response["results"], [])
 
-    def test_create_then_delete(self, datetime_mock):
+    def test_create_then_delete(self):
         self._check_hosts_are_present()
 
         event = self._delete()
-        self._assert_event_is_valid(event, datetime_mock.utcnow.return_value)
+        self._assert_event_is_valid(event)
 
         self._check_hosts_are_deleted()
 
-    def test_create_then_delete_with_branch_id(self, datetime_mock):
+    def test_create_then_delete_with_branch_id(self):
         self._check_hosts_are_present()
 
         event = self._delete(url_query="?" + "branch_id=1234")
-        self._assert_event_is_valid(event, datetime_mock.utcnow.return_value)
+        self._assert_event_is_valid(event)
 
         self._check_hosts_are_deleted()
 
-    def test_create_then_delete_with_request_id(self, datetime_mock):
+    def test_create_then_delete_with_request_id(self):
         self._check_hosts_are_present()
 
         request_id = generate_uuid()
         header = {"x-rh-insights-request-id": request_id}
         event = self._delete(header=header)
 
-        self._assert_event_is_valid(event, datetime_mock.utcnow.return_value)
+        self._assert_event_is_valid(event)
         self._check_hosts_are_deleted()
 
         self.assertEqual(request_id, event["request_id"])
 
-    def test_create_then_delete_without_request_id(self, datetime_mock):
+    def test_create_then_delete_without_request_id(self):
         self._check_hosts_are_present()
 
         event = self._delete(header=None)
-        self._assert_event_is_valid(event, datetime_mock.utcnow.return_value)
+        self._assert_event_is_valid(event)
         self._check_hosts_are_deleted()
 
         self.assertEqual("-1", event["request_id"])
