@@ -1285,7 +1285,7 @@ class DeleteHostsEventTestCase(PreCreatedHostsBaseTestCase):
         def __call__(self, e):
             self.events.append(e)
 
-    def _delete(self, url, request_id):
+    def _delete(self, url, request_id=None):
         with unittest.mock.patch("api.host.emit_event", new_callable=self.MockEmitEvent) as m:
             header = {"x-rh-insights-request-id": request_id} if request_id else None
             self.delete(url, 200, header, return_response_as_json=False)
@@ -1312,39 +1312,47 @@ class DeleteHostsEventTestCase(PreCreatedHostsBaseTestCase):
         self.assertEqual(after_response["total"], 0)
         self.assertEqual(after_response["results"], [])
 
-    def _create_then_delete_host(self, url, host, timestamp, request_id=None):
-        self._check_hosts_are_present(url)
-        event = self._delete(url, request_id)
-        self._assert_event_is_valid(event, host, timestamp)
-        self._check_hosts_are_deleted(url)
-        return event
-
     def test_create_then_delete(self, datetime_mock):
         host = self.added_hosts[0]
         url = HOST_URL + "/" + host.id
-        timestamp = datetime_mock.utcnow.return_value
-        self._create_then_delete_host(url, host, timestamp)
+        self._check_hosts_are_present(url)
+
+        event = self._delete(url)
+        self._assert_event_is_valid(event, host, datetime_mock.utcnow.return_value)
+
+        self._check_hosts_are_deleted(url)
 
     def test_create_then_delete_with_branch_id(self, datetime_mock):
         host = self.added_hosts[0]
         url = HOST_URL + "/" + host.id + "?" + "branch_id=1234"
-        timestamp = datetime_mock.utcnow.return_value
-        self._create_then_delete_host(url, host, timestamp)
+        self._check_hosts_are_present(url)
+
+        event = self._delete(url)
+        self._assert_event_is_valid(event, host, datetime_mock.utcnow.return_value)
+
+        self._check_hosts_are_deleted(url)
 
     def test_create_then_delete_with_request_id(self, datetime_mock):
         host = self.added_hosts[0]
         url = HOST_URL + "/" + host.id
-        timestamp = datetime_mock.utcnow.return_value
+        self._check_hosts_are_present(url)
+
         request_id = generate_uuid()
-        event = self._create_then_delete_host(url, host, timestamp, request_id)
+        event = self._delete(url, request_id)
+        self._assert_event_is_valid(event, host, datetime_mock.utcnow.return_value)
+        self._check_hosts_are_deleted(url)
+
         self.assertEqual(request_id, event["request_id"])
 
     def test_create_then_delete_without_request_id(self, datetime_mock):
         host = self.added_hosts[0]
         url = HOST_URL + "/" + host.id
-        request_id = None
-        timestamp = datetime_mock.utcnow.return_value
-        event = self._create_then_delete_host(url, host, timestamp, request_id)
+        self._check_hosts_are_present(url)
+
+        event = self._delete(url, request_id=None)
+        self._assert_event_is_valid(event, host, datetime_mock.utcnow.return_value)
+        self._check_hosts_are_deleted(url)
+
         self.assertEqual("-1", event["request_id"])
 
 
