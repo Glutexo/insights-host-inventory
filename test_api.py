@@ -3129,6 +3129,19 @@ class TagsRequestTestCase(APIBaseTestCase):
                 },
             )
 
+    def test_request_id_forwarded_only_if_present(self, is_enabled):
+        value = {"data": {"hostTags": {"meta": {"count": 0, "total": 0}, "data": []}}}
+        response = mock.Mock()
+        response.text = json.dumps(value)
+        response.json = mock.Mock(return_value=value)
+
+        with patch("app.xjoin.post", return_value=response) as resp:
+            self.get(TAGS_URL, 200, extra_headers={"foo": "bar"})
+
+            resp.assert_called_once_with(
+                ANY, json=ANY, headers={"x-rh-identity": "eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMDAwNTAxIn19"}
+            )
+
     @patch_with_empty_response()
     def test_query_variables_default(self, graphql_query, is_enabled):
         self.get(TAGS_URL, 200)
