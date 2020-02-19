@@ -151,8 +151,8 @@ class MockEmitEvent:
     def __init__(self):
         self.events = []
 
-    def __call__(self, e):
-        self.events.append(e)
+    def __call__(self, e, id):
+        self.events.append((e, id))
 
 
 class APIBaseTestCase(TestCase):
@@ -1191,7 +1191,7 @@ class HostReaperTestCase(DeleteHostsBaseTestCase):
         self._run_host_reaper()
         self._check_hosts_are_deleted((added_host_id,))
 
-        events = tuple(json.loads(event) for event in emit_event.events)
+        events = tuple(json.loads(event[0]) for event in emit_event.events)
         self._assert_events_are_valid(events, added_hosts, self.now_timestamp)
 
     def test_non_culled_host_is_not_removed(self, emit_event):
@@ -1821,7 +1821,7 @@ class DeleteHostsEventTestCase(PreCreatedHostsBaseTestCase, DeleteHostsBaseTestC
             with patch("app.events.datetime", **{"utcnow.return_value": self.timestamp}):
                 url = f"{self.delete_url}{url_query}"
                 self.delete(url, 200, header, return_response_as_json=False)
-                return json.loads(m.events[0])
+                return json.loads(m.events[0][0])
 
     def _assert_event_is_valid(self, event):
         self._assert_events_are_valid((event,), (self.host_to_delete,), self.timestamp)

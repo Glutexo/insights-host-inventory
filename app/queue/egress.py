@@ -26,11 +26,11 @@ class KafkaEventProducer:
         self._kafka_producer = KafkaProducer(bootstrap_servers=config.bootstrap_servers)
         self._topic = config.host_egress_topic
 
-    def write_event(self, event):
+    def write_event(self, event, host):
         logger.debug(f"Topic: {self._topic} => {event}")
 
         try:
-            self._kafka_producer.send(self._topic, value=event.encode("utf-8"))
+            self._kafka_producer.send(self._topic, key=host["id"].encode("utf-8"), value=event.encode("utf-8"))
             metrics.egress_message_handler_success.inc()
         except Exception:
             logger.exception("Failed to send event")
@@ -41,8 +41,8 @@ class NullEventProducer:
     def __init__(self):
         logger.info("Starting NullEventProducer()")
 
-    def write_event(self, event):
-        logger.debug("NullEventProducer - logging event: %s" % event)
+    def write_event(self, event, host):
+        logger.debug("NullEventProducer - logging event: %s - message_key: %s" % event, host["id"])
 
 
 @metrics.egress_event_serialization_time.time()

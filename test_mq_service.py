@@ -34,7 +34,7 @@ class mockEventProducer:
     def __init__(self):
         self.__data = {}
 
-    def write_event(self, val):
+    def write_event(self, val, host):
         self.__data["write_event"] = val
 
     def get_write_event(self):
