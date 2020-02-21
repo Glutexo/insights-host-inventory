@@ -36,9 +36,13 @@ class mockEventProducer:
 
     def write_event(self, val, host_id):
         self.__data["write_event"] = val
+        self.__data["key"] = host_id
 
     def get_write_event(self):
         return self.__data["write_event"]
+    
+    def get_message_key(self):
+        return self.__data["key"]
 
 
 class MQServiceBaseTestCase(TestCase):
@@ -232,6 +236,24 @@ class MQhandleMessageTestCase(MQAddHostBaseClass):
             self.assertEqual(
                 json.loads(mock_event_producer.get_write_event())["host"][key], expected_results["host"][key]
             )
+    
+    def test_handle_message_verify_message_key(self):
+        expected_insights_id = str(uuid.uuid4())
+        host_id = uuid.uuid4()
+
+        host_data = {"display_name": "test_host", "insights_id": expected_insights_id, "account": "0000001"}
+        message = {"operation": "add_host", "data": host_data}
+
+        with self.app.app_context():
+            with unittest.mock.patch("app.queue.ingress.host_repository.add_host") as m:
+                m.return_value = ({"id": host_id, "insights_id": None}, AddHostResults.created)
+                mock_event_producer = mockEventProducer()
+                handle_message(json.dumps(message), mock_event_producer)
+
+                self.assertEqual(
+                    mock_event_producer.get_message_key(),
+                    m.return_value[0]["id"],
+                )
 
 
 class MQAddHostTestCase(MQAddHostBaseClass):
