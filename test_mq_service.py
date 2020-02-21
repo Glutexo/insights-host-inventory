@@ -40,7 +40,7 @@ class mockEventProducer:
 
     def get_write_event(self):
         return self.__data["write_event"]
-    
+
     def get_message_key(self):
         return self.__data["key"]
 
@@ -236,7 +236,7 @@ class MQhandleMessageTestCase(MQAddHostBaseClass):
             self.assertEqual(
                 json.loads(mock_event_producer.get_write_event())["host"][key], expected_results["host"][key]
             )
-    
+
     def test_handle_message_verify_message_key(self):
         expected_insights_id = str(uuid.uuid4())
         host_id = uuid.uuid4()
@@ -250,10 +250,7 @@ class MQhandleMessageTestCase(MQAddHostBaseClass):
                 mock_event_producer = mockEventProducer()
                 handle_message(json.dumps(message), mock_event_producer)
 
-                self.assertEqual(
-                    mock_event_producer.get_message_key(),
-                    m.return_value[0]["id"],
-                )
+                self.assertEqual(mock_event_producer.get_message_key(), m.return_value[0]["id"])
 
 
 class MQAddHostTestCase(MQAddHostBaseClass):
