@@ -259,7 +259,13 @@ class MQhandleMessageTestCase(MQAddHostBaseClass):
         expected_insights_id = str(uuid.uuid4())
         host_id = uuid.uuid4()
 
-        host_data = {"display_name": "test_host", "insights_id": expected_insights_id, "account": "0000001"}
+        host_data = {
+            "display_name": "test_host",
+            "insights_id": expected_insights_id,
+            "account": "0000001",
+            "stale_timestamp": "2019-12-16T10:10:06.754201+00:00",
+            "reporter": "test",
+        }
         message = {"operation": "add_host", "data": host_data}
 
         with self.app.app_context():
