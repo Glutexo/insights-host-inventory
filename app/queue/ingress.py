@@ -135,7 +135,7 @@ def handle_message(message, event_producer):
 
         event = build_event(event_type, output_host, metadata)
 
-        host_id = None if output_host is None else output_host["id"]
+        host_id = output_host["id"]
         event_producer.write_event(event, host_id)
 
 
