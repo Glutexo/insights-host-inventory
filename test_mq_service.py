@@ -129,7 +129,7 @@ class MQServiceTestCase(MQServiceBaseTestCase):
 
 
 @patch("app.queue.ingress.build_event")
-@patch("app.queue.ingress.add_host", return_value=(None, None))
+@patch("app.queue.ingress.add_host", return_value=({"id": "fAkE-iD"}, None))
 class MQServiceParseMessageTestCase(MQServiceBaseTestCase):
     def _message(self, display_name):
         return f'{{"operation": "", "data": {{"display_name": "hello{display_name}"}}}}'
