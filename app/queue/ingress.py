@@ -135,8 +135,7 @@ def handle_message(message, event_producer):
 
         event = build_event(event_type, output_host, metadata)
 
-        host_id = output_host["id"]
-        event_producer.write_event(event, host_id)
+        event_producer.write_event(event, output_host["id"])
 
 
 def event_loop(consumer, flask_app, event_producer, handler=handle_message):

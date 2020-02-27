@@ -47,8 +47,10 @@ def _init_event_producer(config):
         return NullProducer()
 
 
-def emit_event(e, id):
-    producer.send(cfg.event_topic, value=e.encode("utf-8"), key=str(id).encode("utf-8"))
+def emit_event(e, key=None):
+    k = key.encode("utf-8") if key else None
+    v = e.encode("utf-8")
+    producer.send(cfg.event_topic, key=k, value=v)
 
 
 def flush():

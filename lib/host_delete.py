@@ -42,4 +42,5 @@ def _deleted_by_this_query(host):
 
 def _emit_event(host):
     event = delete_event(host)
-    emit_event(event, host.id)
+    key = str(host.id)
+    emit_event(event, key)
