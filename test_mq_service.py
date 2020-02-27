@@ -7,6 +7,7 @@ from datetime import timezone
 from unittest import main
 from unittest import TestCase
 from unittest.mock import call
+from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -34,9 +35,9 @@ class mockEventProducer:
     def __init__(self):
         self.__data = {}
 
-    def write_event(self, val, host_id):
+    def write_event(self, val, key=None):
         self.__data["write_event"] = val
-        self.__data["key"] = host_id
+        self.__data["key"] = key
 
     def get_write_event(self):
         return self.__data["write_event"]
@@ -129,7 +130,7 @@ class MQServiceTestCase(MQServiceBaseTestCase):
 
 
 @patch("app.queue.ingress.build_event")
-@patch("app.queue.ingress.add_host", return_value=({"id": "fAkE-iD"}, None))
+@patch("app.queue.ingress.add_host", return_value=(MagicMock(), None))
 class MQServiceParseMessageTestCase(MQServiceBaseTestCase):
     def _message(self, display_name):
         return f'{{"operation": "", "data": {{"display_name": "hello{display_name}"}}}}'
@@ -255,9 +256,12 @@ class MQhandleMessageTestCase(MQAddHostBaseClass):
                 json.loads(mock_event_producer.get_write_event())["host"][key], expected_results["host"][key]
             )
 
-    def test_handle_message_verify_message_key(self):
+    @patch(
+        "app.queue.ingress.host_repository.add_host",
+        return_value=({"id": uuid.uuid4(), "insights_id": None}, AddHostResults.created),
+    )
+    def test_handle_message_verify_message_key(self, add_host):
         expected_insights_id = str(uuid.uuid4())
-        host_id = uuid.uuid4()
 
         host_data = {
             "display_name": "test_host",
@@ -269,12 +273,16 @@ class MQhandleMessageTestCase(MQAddHostBaseClass):
         message = {"operation": "add_host", "data": host_data}
 
         with self.app.app_context():
-            with unittest.mock.patch("app.queue.ingress.host_repository.add_host") as m:
-                m.return_value = ({"id": host_id, "insights_id": None}, AddHostResults.created)
-                mock_event_producer = mockEventProducer()
-                handle_message(json.dumps(message), mock_event_producer)
+            mock_event_producer = mockEventProducer()
+            handle_message(json.dumps(message), mock_event_producer)
+            self.assertEqual(mock_event_producer.get_message_key(), add_host.return_value[0]["id"])
+            # with unittest.mock.patch("app.queue.ingress.host_repository.add_host") as m:
+            #     host_id = str(uuid.uuid4())
+            #     m.return_value = ({"id": host_id, "insights_id": None}, AddHostResults.created)
+            #     mock_event_producer = mockEventProducer()
+            #     handle_message(json.dumps(message), mock_event_producer)
 
-                self.assertEqual(mock_event_producer.get_message_key(), m.return_value[0]["id"])
+            #     self.assertEqual(mock_event_producer.get_message_key(), m.return_value[0]["id"])
 
 
 class MQAddHostTestCase(MQAddHostBaseClass):
