@@ -1830,35 +1830,41 @@ class DeleteHostsEventTestCase(PreCreatedHostsBaseTestCase, DeleteHostsBaseTestC
                 url = f"{self.delete_url}{url_query}"
                 self.delete(url, 200, header, return_response_as_json=False)
                 event, key = m.events[0]
-                return json.loads(event)
+                return json.loads(event), key
 
     def _assert_event_is_valid(self, event):
         self._assert_events_are_valid((event,), (self.host_to_delete,), self.timestamp)
 
     def test_create_then_delete(self):
         self._check_hosts_are_present((self.host_to_delete.id,))
-        event = self._delete()
+        event, key = self._delete()
         self._assert_event_is_valid(event)
         self._check_hosts_are_deleted((self.host_to_delete.id,))
 
     def test_create_then_delete_with_branch_id(self):
         self._check_hosts_are_present((self.host_to_delete.id,))
-        event = self._delete(url_query="?branch_id=1234")
+        event, key = self._delete(url_query="?branch_id=1234")
         self._assert_event_is_valid(event)
         self._check_hosts_are_deleted((self.host_to_delete.id,))
 
     def test_create_then_delete_with_request_id(self):
         request_id = generate_uuid()
         header = {"x-rh-insights-request-id": request_id}
-        event = self._delete(header=header)
+        event, key = self._delete(header=header)
         self._assert_event_is_valid(event)
         self.assertEqual(request_id, event["request_id"])
 
     def test_create_then_delete_without_request_id(self):
         self._check_hosts_are_present((self.host_to_delete.id,))
-        event = self._delete(header=None)
+        event, key = self._delete(header=None)
         self._assert_event_is_valid(event)
         self.assertEqual("-1", event["request_id"])
+
+    def test_create_then_delete_event_message_key(self):
+        self._check_hosts_are_present((self.host_to_delete.id,))
+        event, key = self._delete()
+        self._assert_event_is_valid(event)
+        self.assertEqual(key, event["id"])
 
 
 @patch("lib.host_delete.emit_event")
