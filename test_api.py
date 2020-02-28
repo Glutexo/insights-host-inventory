@@ -1196,8 +1196,10 @@ class HostReaperTestCase(DeleteHostsBaseTestCase, CullingBaseTestCase):
         self._run_host_reaper()
         self._check_hosts_are_deleted((added_host_id,))
 
-        events = tuple(json.loads(event) for event, key in emit_event.events)
+        events, keys = zip(*emit_event.events)
+        events = tuple(json.loads(event) for event in events)
         self._assert_events_are_valid(events, added_hosts, self.now_timestamp)
+        [self.assertEqual(key, event["id"]) for key, event in zip(keys, events)]
 
     def test_non_culled_host_is_not_removed(self, emit_event):
         hosts_to_add = []
