@@ -205,21 +205,22 @@ class MQAddHostBaseClass(MQServiceBaseTestCase):
 
 
 class MQhandleMessageTestCase(MQAddHostBaseClass):
-    def test_handle_message_verify_metadata_pass_through(self):
-        request_id = str(uuid.uuid4())
-        expected_insights_id = str(uuid.uuid4())
-
-        metadata = {"request_id": request_id, "archive_url": "https://some.url"}
-
-        host_data = {
+    def _host_data(self):
+        return {
             "display_name": "test_host",
-            "insights_id": expected_insights_id,
+            "id": str(uuid.uuid4()),
+            "insights_id": str(uuid.uuid4()),
             "account": "0000001",
             "stale_timestamp": "2019-12-16T10:10:06.754201+00:00",
             "reporter": "test",
         }
 
-        message = {"operation": "add_host", "platform_metadata": metadata, "data": host_data}
+    def test_handle_message_verify_metadata_pass_through(self):
+        request_id = str(uuid.uuid4())
+
+        metadata = {"request_id": request_id, "archive_url": "https://some.url"}
+
+        message = {"operation": "add_host", "platform_metadata": metadata, "data": self._host_data()}
 
         expected_results = {"platform_metadata": {**metadata}}
 
@@ -232,57 +233,23 @@ class MQhandleMessageTestCase(MQAddHostBaseClass):
             expected_results["platform_metadata"],
         )
 
-    def test_handle_message_verify_metadata_is_not_required(self):
-        expected_insights_id = str(uuid.uuid4())
+    @patch("app.queue.ingress.host_repository.add_host")
+    def test_handle_message_verify_message_key_and_metadata_not_required(self, add_host):
+        add_host.return_value = (self._host_data(), AddHostResults.created)
 
-        host_data = {
-            "display_name": "test_host",
-            "insights_id": expected_insights_id,
-            "account": "0000001",
-            "stale_timestamp": "2019-12-16T10:10:06.754201+00:00",
-            "reporter": "test",
-        }
+        message = {"operation": "add_host", "data": self._host_data()}
 
-        message = {"operation": "add_host", "data": host_data}
-
-        expected_results = {"host": {**host_data}}
+        expected_results = {"host": {**add_host.return_value[0]}}
 
         mock_event_producer = mockEventProducer()
         with self.app.app_context():
             handle_message(json.dumps(message), mock_event_producer)
+            self.assertEqual(mock_event_producer.get_message_key(), expected_results["host"]["id"])
 
-        for key in host_data.keys():
+        for key in expected_results["host"].keys():
             self.assertEqual(
                 json.loads(mock_event_producer.get_write_event())["host"][key], expected_results["host"][key]
             )
-
-    @patch(
-        "app.queue.ingress.host_repository.add_host",
-        return_value=({"id": uuid.uuid4(), "insights_id": None}, AddHostResults.created),
-    )
-    def test_handle_message_verify_message_key(self, add_host):
-        expected_insights_id = str(uuid.uuid4())
-
-        host_data = {
-            "display_name": "test_host",
-            "insights_id": expected_insights_id,
-            "account": "0000001",
-            "stale_timestamp": "2019-12-16T10:10:06.754201+00:00",
-            "reporter": "test",
-        }
-        message = {"operation": "add_host", "data": host_data}
-
-        with self.app.app_context():
-            mock_event_producer = mockEventProducer()
-            handle_message(json.dumps(message), mock_event_producer)
-            self.assertEqual(mock_event_producer.get_message_key(), add_host.return_value[0]["id"])
-            # with unittest.mock.patch("app.queue.ingress.host_repository.add_host") as m:
-            #     host_id = str(uuid.uuid4())
-            #     m.return_value = ({"id": host_id, "insights_id": None}, AddHostResults.created)
-            #     mock_event_producer = mockEventProducer()
-            #     handle_message(json.dumps(message), mock_event_producer)
-
-            #     self.assertEqual(mock_event_producer.get_message_key(), m.return_value[0]["id"])
 
 
 class MQAddHostTestCase(MQAddHostBaseClass):
