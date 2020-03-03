@@ -44,7 +44,7 @@ class NullEventProducer:
         logger.info("Starting NullEventProducer()")
 
     def write_event(self, event, key=None):
-        logger.debug("NullEventProducer - logging event: %s, key: %s", event, key)
+        logger.debug("NullEventProducer - logging key: %s, event: %s", key, event)
 
 
 @metrics.egress_event_serialization_time.time()
