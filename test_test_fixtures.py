@@ -5,6 +5,8 @@ from test_fixtures import _merge_dict
 from test_fixtures import _merge_key
 from test_fixtures import _merge_list
 from test_fixtures import _merge_value
+from test_fixtures import SYSTEM_PROFILE
+from test_fixtures import system_profile
 
 
 class MergeValueTestCase(TestCase):
@@ -350,3 +352,56 @@ class MergeListTestCase(TestCase):
         merged = _merge_list(original, override)
         expected = [[["eth2", "eth3"], ["wlan2", "wlan1"]], [["/dev/sda3", "/dev/sda2"], ["/dev/sdb1", "/dev/sdb2"]]]
         self.assertEqual(expected, merged)
+
+
+class SystemProfileTestCase(TestCase):
+    def test_no_overrides(self):
+        profile = system_profile()
+        self.assertEqual(SYSTEM_PROFILE, profile)
+
+    def test_simple_override(self):
+        override = {"number_of_cpus": 3, "number_of_sockets": 4}
+        profile = system_profile(override)
+        expected = {**SYSTEM_PROFILE, **override}
+        self.assertEqual(expected, profile)
+
+    def test_list_replace(self):
+        override = {"installed_services": ["ssh", "cron"]}
+        profile = system_profile(override)
+        expected = {**SYSTEM_PROFILE, **override}
+        self.assertEqual(expected, profile)
+
+    def test_list_update(self):
+        override = {"installed_services": {0: "ssh"}}
+        profile = system_profile(override)
+        expected = {**SYSTEM_PROFILE, **{"installed_services": ["ssh", "krb5"]}}
+        self.assertEqual(expected, profile)
+
+    def test_dict_override(self):
+        override = {"installed_products": {0: {"name": "ansible"}}}
+        profile = system_profile(override)
+        expected = {
+            **SYSTEM_PROFILE,
+            **{
+                "installed_products": [
+                    {"name": "ansible", "id": "123", "status": "UP"},
+                    {"name": "jbws", "id": "321", "status": "DOWN"},
+                ]
+            },
+        }
+        self.assertEqual(expected, profile)
+
+    def test_invalid_root_key(self):
+        override = {"system_memory_octets": 1024}
+        with self.assertRaises(KeyError):
+            system_profile(override)
+
+    def test_invalid_list_key(self):
+        override = {"installed_products": {2: {"name": "ansible", "id": "123", "status": "UP"}}}
+        with self.assertRaises(KeyError):
+            system_profile(override)
+
+    def test_invalid_dict_key(self):
+        override = {"installed_products": {0: {"vendor": "Red Hat"}}}
+        with self.assertRaises(KeyError):
+            system_profile(override)

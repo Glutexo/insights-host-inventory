@@ -59,6 +59,10 @@ SYSTEM_PROFILE = {
 }
 
 
+def system_profile(override=None):
+    return _merge_dict(SYSTEM_PROFILE, override or {})
+
+
 def _merge_value(original, override):
     if type(original) is dict and type(override) is dict:
         return _merge_dict(original, override)
