@@ -59,30 +59,38 @@ SYSTEM_PROFILE = {
 }
 
 
-def system_profile(override=None):
-    return
+def _merge_value(original, override):
+    if type(original) is dict and type(override) is dict:
+        return _merge_dict(original, override)
+    elif type(original) is list and type(override) is dict:
+        return _merge_list(original, override)
+    elif type(original) is type(override):
+        return override
+    else:
+        raise TypeError
+
+
+def _merge_key(original, override, key):
+    original_value = original[key]
+    try:
+        override_value = override[key]
+    except KeyError:
+        return original_value
+    else:
+        return _merge_value(original_value, override_value)
 
 
 def _merge_dict(original, override):
-    if override.keys() - original.keys():
+    _assert_keys_overridable(original.keys(), override.keys())
+    return {key: _merge_key(original, override, key) for key in original}
+
+
+def _merge_list(original, override):
+    original_keys = range(len(original))
+    _assert_keys_overridable(original_keys, override.keys())
+    return [_merge_key(original, override, key) for key in original_keys]
+
+
+def _assert_keys_overridable(original, override):
+    if override - original:
         raise KeyError
-
-    merged = {}
-
-    for key in original:
-        original_value = original[key]
-
-        try:
-            override_value = override[key]
-        except KeyError:
-            merged[key] = original_value
-        else:
-            if type(override_value) is not type(original_value):
-                raise TypeError
-
-            if type(original_value) is dict:
-                merged[key] = _merge_dict(original_value, override_value)
-            else:
-                merged[key] = override_value
-
-    return merged

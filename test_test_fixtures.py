@@ -1,11 +1,93 @@
 from unittest import TestCase
 
+from test_fixtures import _assert_keys_overridable
 from test_fixtures import _merge_dict
+from test_fixtures import _merge_key
 from test_fixtures import _merge_list
+from test_fixtures import _merge_value
+
+
+class MergeValueTestCase(TestCase):
+    def test_simple_value(self):
+        original = "eth0"
+        override = "eth1"
+        merged = _merge_value(original, override)
+        self.assertEqual(override, merged)
+
+    def test_wrong_type(self):
+        original = 0
+        override = "0"
+        with self.assertRaises(TypeError):
+            _merge_value(original, override)
+
+    def test_merge_dict(self):
+        original = {"number_of_cpus": 1, "number_of_sockets": 2}
+        override = {"number_of_cpus": 2}
+        merged = _merge_value(original, override)
+        expected = {**original, **override}
+        self.assertEqual(expected, merged)
+
+    def test_merge_list(self):
+        original = ["eth0", "eth1"]
+        override = {0: "eth2"}
+        merged = _merge_value(original, override)
+        expected = ["eth2", "eth1"]
+        self.assertEqual(expected, merged)
+
+    def test_replace_list(self):
+        original = ["eth0", "eth1"]
+        override = ["eth2"]
+        merged = _merge_value(original, override)
+        self.assertEqual(override, merged)
+
+
+class MergeKeyTestCase(TestCase):
+    def test_dict_not_overridden(self):
+        original = {"number_of_cpus": 1, "number_of_sockets": 2}
+        override = {"number_of_sockets": 3}
+        merged = _merge_key(original, override, "number_of_cpus")
+        self.assertEqual(original["number_of_cpus"], merged)
+
+    def test_list_not_overriden(self):
+        original = ["eth0", "eth1"]
+        override = {1: "eth2"}
+        merged = _merge_key(original, override, 0)
+        self.assertEqual(original[0], merged)
+
+    def test_dict_overridden(self):
+        original = {"number_of_cpus": 1, "number_of_sockets": 2}
+        override = {"number_of_sockets": 3}
+        merged = _merge_key(original, override, "number_of_sockets")
+        self.assertEqual(override["number_of_sockets"], merged)
+
+    def test_list_overridden(self):
+        original = ["eth0", "eth1"]
+        override = {1: "eth2"}
+        merged = _merge_key(original, override, 1)
+        self.assertEqual(override[1], merged)
+
+
+class AssertKeysOverridable(TestCase):
+    def test_all_overridable(self):
+        keys = ("number_of_cpus", "number_of_sockets")
+        _assert_keys_overridable(keys, keys)
+        self.assertTrue(True)
+
+    def test_some_overridable(self):
+        original = ("number_of_cpus", "number_of_sockets")
+        override = ("number_of_sockets",)
+        _assert_keys_overridable(original, override)
+        self.assertTrue(True)
+
+    def test_not_overridable(self):
+        original = ("number_of_cpus", "number_of_sockets")
+        override = ("cores_per_socket",)
+        with self.assertRaises(KeyError):
+            _assert_keys_overridable(original, override)
 
 
 class MergeDictTestCase(TestCase):
-    def test_single_simple_value(self):
+    def test_single__value(self):
         original = {"number_of_cpus": 1}
         override = {"number_of_cpus": 2}
         merged = _merge_dict(original, override)
@@ -118,7 +200,7 @@ class MergeDictTestCase(TestCase):
     def test_nested_list_wrong_key(self):
         original = {"network_interfaces": ["eth0"]}
         override = {"network_interfaces": {1: "eth1"}}
-        with self.assertRaises(IndexError):
+        with self.assertRaises(KeyError):
             _merge_dict(original, override)
 
     def test_nested_list_wrong_type(self):
@@ -146,7 +228,7 @@ class MergeListTestCase(TestCase):
     def test_wrong_key_type(self):
         original = ["eth0"]
         override = {"0": "eth1"}
-        with self.assertRaises(IndexError):
+        with self.assertRaises(KeyError):
             _merge_list(original, override)
 
     def test_single_simple_value(self):
@@ -173,7 +255,7 @@ class MergeListTestCase(TestCase):
     def test_wrong_key(self):
         original = ["eth0"]
         override = {1: "eth4"}
-        with self.assertRaises(IndexError):
+        with self.assertRaises(KeyError):
             _merge_list(original, override)
 
     def test_wrong_type(self):
@@ -213,7 +295,7 @@ class MergeListTestCase(TestCase):
     def test_nested_list_wrong_key(self):
         original = [[0]]
         override = {0: {1: 1}}
-        with self.assertRaises(IndexError):
+        with self.assertRaises(KeyError):
             _merge_list(original, override)
 
     def test_nested_list_wrong_type(self):
