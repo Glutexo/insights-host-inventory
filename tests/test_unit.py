@@ -1686,7 +1686,7 @@ class EventProducerTests(TestCase):
         headers = message_headers(event_type)
 
         with self.assertRaises(KeyError):
-            self.event_producer.write_event(event, key, headers, "platform.invalid.topic_name")
+            self.event_producer.write_event(event, key, headers, "invalid")
 
     @patch("app.queue.event_producer.message_not_produced")
     def test_kafka_errors_are_caught(self, message_not_produced_mock):
