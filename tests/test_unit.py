@@ -36,6 +36,7 @@ from app.models import Host
 from app.models import HttpHostSchema
 from app.models import MqHostSchema
 from app.queue.event_producer import EventProducer
+from app.queue.event_producer import logger as event_producer_logger
 from app.queue.event_producer import Topic
 from app.queue.events import build_event
 from app.queue.events import EventType
@@ -272,7 +273,6 @@ class ConfigTestCase(TestCase):
 
         # Make sure the runtime_environment variables are not set
         with set_environment(None):
-
             conf = self._config()
 
             self.assertEqual(conf.db_uri, "postgresql://insights:insights@localhost/insights")
@@ -285,7 +285,6 @@ class ConfigTestCase(TestCase):
 
     def test_config_development_settings(self):
         with set_environment({"INVENTORY_DB_POOL_TIMEOUT": "3"}):
-
             conf = self._config()
 
             self.assertEqual(conf.db_pool_timeout, 3)
@@ -1696,11 +1695,14 @@ class EventProducerTests(TestCase):
         headers = message_headers(event_type)
 
         # set up send to return a kafka error to check our handling
-        self.event_producer._kafka_producer.send.side_effect = KafkaError()
+        kafka_error = KafkaError()
+        self.event_producer._kafka_producer.send.side_effect = kafka_error
 
         self.event_producer.write_event(event, key, headers, Topic.events)
 
-        message_not_produced_mock.assert_called_once()
+        message_not_produced_mock.assert_called_once_with(
+            event_producer_logger, self.config.event_topic, event, key, headers, kafka_error
+        )
 
 
 if __name__ == "__main__":
